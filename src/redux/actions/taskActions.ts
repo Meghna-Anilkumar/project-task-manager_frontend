@@ -82,8 +82,8 @@ export const getSummary = createAsyncThunk<
   { rejectValue: ApiError }
 >('tasks/getSummary', async (projectId, { rejectWithValue }) => {
   try {
-    const response = await serverInstance.post(`/ai/summarize/${projectId}`);
-    return response.data.summary;
+    const response = await serverInstance.post(`/ai/${projectId}/summarize`);
+    return response.data.data.summary;
   } catch (error: unknown) {
     const axiosError = error as AxiosError<{ message?: string }>;
     return rejectWithValue({
@@ -100,7 +100,7 @@ export const askQuestion = createAsyncThunk<
 >('tasks/askQuestion', async ({ taskId, question }, { rejectWithValue }) => {
   try {
     const response = await serverInstance.post('/ai/qa', { taskId, question });
-    return response.data.answer;
+    return response.data.data.answer;
   } catch (error: unknown) {
     const axiosError = error as AxiosError<{ message?: string }>;
     return rejectWithValue({

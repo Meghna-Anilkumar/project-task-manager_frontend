@@ -5,7 +5,10 @@ import { updateTaskStatus, deleteTask } from '../redux/actions/taskActions';
 import type { AppDispatch } from '../redux/store';
 import type { Task } from '../types';
 import CustomModal from './CustomModal';
+import AiQaForm from './AiQaForm';
 import { motion } from 'framer-motion';
+import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 
 interface TaskCardProps {
   task: Task;
@@ -79,6 +82,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
         })
       ).unwrap();
       console.log('Update task result:', result);
+      toast.success('Task updated successfully', { toastId: `update-${task._id}` });
       setErrors({});
       setApiError(null);
       setIsEditModalOpen(false);
@@ -86,21 +90,39 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
       const error = err as { message?: string };
       console.error('Update error:', error);
       setApiError(error.message || 'Failed to update task');
+      toast.error(error.message || 'Failed to update task', { toastId: `update-error-${task._id}` });
     }
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this task?')) {
+    const result = await Swal.fire({
+      title: 'Delete Task?',
+      text: `Are you sure you want to delete "${task.title}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        popup: 'rounded-xl shadow-2xl',
+        confirmButton: 'px-4 py-2 rounded-lg',
+        cancelButton: 'px-4 py-2 rounded-lg',
+      },
+    });
+
+    if (result.isConfirmed) {
       try {
         console.log('Deleting task:', task._id);
         await dispatch(deleteTask(task._id)).unwrap();
         console.log('Task deleted successfully:', task._id);
+        toast.success('Task deleted successfully', { toastId: `delete-${task._id}` });
       } catch (err: unknown) {
         const error = err as { message?: string };
         console.error('Delete error:', error);
-        alert(error.message || 'Failed to delete task');
+        toast.error(error.message || 'Failed to delete task', { toastId: `delete-error-${task._id}` });
       }
     }
   };
@@ -145,7 +167,6 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
       ...prev,
       [field]: value.trim() ? undefined : `${field.charAt(0).toUpperCase() + field.slice(1)} is required`,
     }));
-    // Restore focus to the active input after state update
     setTimeout(() => {
       if (activeInputRef.current) {
         activeInputRef.current.focus();
@@ -180,7 +201,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900">{task.title}</h3>
-                <p className="text-gray-600 text-sm sm:text-base mt-2">{task.description}</p>
+                <p className="text-gray-600 text-sm sm:text-base mt-2 line-clamp-2">{task.description}</p>
                 <p className="text-gray-400 text-xs mt-2">
                   Created:{' '}
                   {new Date(task.createdDate).toLocaleDateString('en-US', {
@@ -293,6 +314,10 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
             </motion.button>
           </div>
         </form>
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Ask AI About This Task</h3>
+          <AiQaForm taskId={task._id} />
+        </div>
       </CustomModal>
     </ErrorBoundary>
   );
