@@ -1,4 +1,4 @@
-import React,{ useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { Draggable } from '@hello-pangea/dnd';
 import { updateTaskStatus, deleteTask } from '../redux/actions/taskActions';
@@ -42,6 +42,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 const TaskCard = ({ task, index }: TaskCardProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState(task.status);
@@ -139,6 +140,13 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
     setIsEditModalOpen(true);
   };
 
+  const handleAiClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Ask AI button clicked for task:', task._id);
+    setIsAiModalOpen(true);
+  };
+
   const handleModalClose = () => {
     console.log('Closing edit modal');
     setIsEditModalOpen(false);
@@ -148,6 +156,11 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
     setErrors({});
     setApiError(null);
     activeInputRef.current = null;
+  };
+
+  const handleAiModalClose = () => {
+    console.log('Closing AI modal');
+    setIsAiModalOpen(false);
   };
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -179,7 +192,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
 
   return (
     <ErrorBoundary>
-      <Draggable draggableId={task._id} index={index} isDragDisabled={isEditModalOpen}>
+      <Draggable draggableId={task._id} index={index} isDragDisabled={isEditModalOpen || isAiModalOpen}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
@@ -210,7 +223,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
                     day: 'numeric',
                   })}
                 </p>
-                <div className="flex gap-2 mt-4">
+                <div className="flex gap-2 mt-4 flex-wrap">
                   <motion.button
                     type="button"
                     onClick={handleEditClick}
@@ -229,12 +242,26 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
                   >
                     Delete
                   </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={handleAiClick}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1 rounded-lg text-xs sm:text-sm shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Ask AI
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
           </div>
         )}
       </Draggable>
+
+      {/* Edit Modal */}
       <CustomModal isOpen={isEditModalOpen} onClose={handleModalClose} title="Edit Task">
         {apiError && <p className="text-red-500 mb-4 text-sm">{apiError}</p>}
         <form onSubmit={handleUpdate} className="flex flex-col gap-5">
@@ -314,10 +341,14 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
             </motion.button>
           </div>
         </form>
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Ask AI About This Task</h3>
-          <AiQaForm taskId={task._id} />
+      </CustomModal>
+
+      {/* AI Q&A Modal */}
+      <CustomModal isOpen={isAiModalOpen} onClose={handleAiModalClose} title={`Ask AI About: ${task.title}`}>
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-600">{task.description}</p>
         </div>
+        <AiQaForm taskId={task._id} />
       </CustomModal>
     </ErrorBoundary>
   );

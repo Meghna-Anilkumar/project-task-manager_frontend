@@ -95,9 +95,9 @@ export const getSummary = createAsyncThunk<
 
 export const askQuestion = createAsyncThunk<
   string,
-  { taskId: string; question: string },
+  { taskId: string; question: string},
   { rejectValue: ApiError }
->('tasks/askQuestion', async ({ taskId, question }, { rejectWithValue }) => {
+>('tasks/askQuestion', async ({ taskId, question}, { rejectWithValue }) => {
   try {
     const response = await serverInstance.post('/ai/qa', { taskId, question });
     return response.data.data.answer;
