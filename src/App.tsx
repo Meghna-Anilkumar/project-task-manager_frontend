@@ -1,20 +1,21 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import { Provider } from 'react-redux';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { store } from './redux/store';
+import ProjectList from './components/ProjectList';
+import KanbanBoard from './components/KanbanBoard';
 
 function App() {
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    axios.get("http://localhost:5000/api/test")
-      .then(res => setMessage(res.data.message))
-      .catch(err => console.error("❌ Backend connection failed:", err));
-  }, []);
-
   return (
-    <div className="p-10 text-center">
-      <h1 className="text-2xl font-bold text-blue-600">Project Management System</h1>
-      <p className="mt-4 text-gray-700">{message || "Connecting to backend..."}</p>
-    </div>
+    <Provider store={store}>
+      <BrowserRouter>
+        <div className="min-h-screen bg-gray-100">
+          <Routes>
+            <Route path="/" element={<ProjectList />} />
+            <Route path="/project/:projectId" element={<KanbanBoard />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </Provider>
   );
 }
 
