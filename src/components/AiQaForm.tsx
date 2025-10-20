@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { askQuestion } from '../redux/actions/taskActions';
+import { resetQaResponse } from '../redux/reducers/tasksSlice';
 import type { RootState, AppDispatch } from '../redux/store';
 
 interface AiQaFormProps {
@@ -15,6 +16,7 @@ const AiQaForm = ({ taskId }: AiQaFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (question.trim()) {
+      dispatch(resetQaResponse()); 
       dispatch(askQuestion({ taskId, question }));
       setQuestion('');
     }

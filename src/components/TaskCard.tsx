@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React,{ useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { Draggable } from '@hello-pangea/dnd';
-import { updateTaskStatus, deleteTask } from '../redux/actions/taskActions';
+import { updateTaskStatus, deleteTask} from '../redux/actions/taskActions';
+import { resetQaResponse } from '../redux/reducers/tasksSlice';
 import type { AppDispatch } from '../redux/store';
 import type { Task } from '../types';
 import CustomModal from './CustomModal';
@@ -166,8 +167,9 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
 
   const handleAiModalClose = useCallback(() => {
     console.log('Closing AI modal');
+    dispatch(resetQaResponse()); // Clear qaResponse when closing AI modal
     setIsAiModalOpen(false);
-  }, []);
+  }, [dispatch]);
 
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('Title input changed:', e.target.value);

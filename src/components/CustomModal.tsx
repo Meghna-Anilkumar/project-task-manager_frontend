@@ -39,7 +39,7 @@ const CustomModal = ({ isOpen, onClose, children, title }: CustomModalProps) => 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 overflow-y-auto"
         >
           <motion.div
             ref={modalRef}
@@ -47,10 +47,10 @@ const CustomModal = ({ isOpen, onClose, children, title }: CustomModalProps) => 
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.8, y: -50, opacity: 0 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-2xl shadow-2xl max-w-md w-full mt-16 sm:mt-24"
+            className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-2xl shadow-2xl max-w-md w-full my-8 max-h-[90vh] overflow-y-auto"
             tabIndex={-1}
           >
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6 sticky top-0 bg-gradient-to-br from-blue-50 to-indigo-100 pb-2 z-10">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h2>
               <button
                 onClick={() => {

@@ -4,10 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { fetchProjects, createProject, updateProject, deleteProject } from '../redux/actions/projectActions';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
+import CustomModal from './CustomModal'; 
 import type { RootState, AppDispatch } from '../redux/store';
 import type { Project } from '../types';
 
-// Custom Toast Component
+
 const CustomToast = ({ message, type }: { message: string; type: 'success' | 'error' }) => {
   const icons = {
     success: (
@@ -44,19 +45,23 @@ const ProjectList = () => {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [actionMenuProject, setActionMenuProject] = useState<Project | null>(null); 
 
   useEffect(() => {
     dispatch(fetchProjects());
   }, [dispatch]);
 
   const handleProjectClick = (projectId: string) => {
-    navigate(`/project/${projectId}`);
+    if (!actionMenuProject) {
+      navigate(`/project/${projectId}`);
+    }
   };
 
   const handleEditClick = (project: Project) => {
     setEditingProject(project);
     setEditForm({ name: project.name, description: project.description });
     setShowCreateForm(false);
+    setActionMenuProject(null);
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -114,6 +119,7 @@ const ProjectList = () => {
         });
       }
     });
+    setActionMenuProject(null); // Close action menu
   };
 
   const handleCreateSubmit = async (e: React.FormEvent, formData: { name: string; description: string }) => {
@@ -137,6 +143,10 @@ const ProjectList = () => {
         });
       }
     });
+  };
+
+  const handleActionMenuToggle = (project: Project) => {
+    setActionMenuProject(actionMenuProject?._id === project._id ? null : project);
   };
 
   const formatDate = (dateString: string) => {
@@ -177,6 +187,7 @@ const ProjectList = () => {
               setShowCreateForm(!showCreateForm);
               setEditingProject(null);
               setEditForm({ name: '', description: '' });
+              setActionMenuProject(null); // Close any open action menu
             }}
             className="group relative bg-gradient-to-r from-pink-500 via-violet-500 to-purple-600 text-white px-8 py-3.5 rounded-2xl hover:shadow-2xl hover:shadow-violet-500/50 hover:scale-105 transition-all duration-300 font-bold flex items-center gap-2.5 overflow-hidden"
           >
@@ -291,6 +302,36 @@ const ProjectList = () => {
           </div>
         )}
 
+        {/* Action Menu Modal */}
+        {actionMenuProject && (
+          <CustomModal
+            isOpen={!!actionMenuProject}
+            onClose={() => setActionMenuProject(null)}
+            title="Project Actions"
+          >
+            <div className="space-y-4">
+              <button
+                onClick={() => handleEditClick(actionMenuProject)}
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:shadow-lg hover:shadow-violet-500/50 transition-all duration-300 font-bold flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Project
+              </button>
+              <button
+                onClick={() => handleDeleteClick(actionMenuProject._id, actionMenuProject.name)}
+                className="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-3 rounded-xl hover:shadow-lg hover:shadow-red-500/50 transition-all duration-300 font-bold flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Project
+              </button>
+            </div>
+          </CustomModal>
+        )}
+
         {/* Loading State */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20">
@@ -354,6 +395,19 @@ const ProjectList = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                       </svg>
                     </div>
+                    {/* Action Menu Button for Mobile */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleActionMenuToggle(project);
+                      }}
+                      className="sm:hidden p-2.5 bg-white rounded-xl shadow-lg text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-all duration-200"
+                      title="Project actions"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
                   </div>
                   <h2 className="text-xl font-black text-gray-800 group-hover:bg-gradient-to-r group-hover:from-pink-600 group-hover:to-violet-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 mb-3">
                     {project.name}
@@ -366,9 +420,13 @@ const ProjectList = () => {
                     {formatDate(project.createdDate)}
                   </div>
                 </div>
-                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                {/* Desktop Action Buttons */}
+                <div className="hidden sm:flex absolute top-4 right-4 gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                   <button
-                    onClick={() => handleEditClick(project)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent navigating to project details
+                      handleEditClick(project);
+                    }}
                     className="p-2.5 bg-white rounded-xl shadow-lg text-violet-600 hover:text-violet-700 hover:bg-violet-50 hover:scale-110 transition-all duration-200"
                     title="Edit project"
                   >
@@ -377,7 +435,10 @@ const ProjectList = () => {
                     </svg>
                   </button>
                   <button
-                    onClick={() => handleDeleteClick(project._id, project.name)}
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      handleDeleteClick(project._id, project.name);
+                    }}
                     className="p-2.5 bg-white rounded-xl shadow-lg text-red-600 hover:text-red-700 hover:bg-red-50 hover:scale-110 transition-all duration-200"
                     title="Delete project"
                   >

@@ -22,7 +22,12 @@ const initialState: TasksState = {
 const tasksSlice = createSlice({
   name: 'tasks',
   initialState,
-  reducers: {},
+  reducers: {
+    resetQaResponse(state) {
+      state.qaResponse = null;
+      state.error = null; // Optionally clear error as well
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchTasks.pending, (state) => {
@@ -103,4 +108,5 @@ const tasksSlice = createSlice({
   },
 });
 
+export const { resetQaResponse } = tasksSlice.actions;
 export default tasksSlice.reducer;

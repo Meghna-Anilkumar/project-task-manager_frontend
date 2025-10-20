@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { Project } from '../../types';
-import { fetchProjects, createProject } from '../actions/projectActions';
+import { fetchProjects, createProject, updateProject, deleteProject } from '../actions/projectActions';
 
 interface ProjectsState {
   projects: Project[];
@@ -44,6 +44,33 @@ const projectsSlice = createSlice({
       .addCase(createProject.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Failed to create project';
+      })
+      .addCase(updateProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProject.fulfilled, (state, action: PayloadAction<Project>) => {
+        state.loading = false;
+        const index = state.projects.findIndex((p) => p._id === action.payload._id);
+        if (index !== -1) {
+          state.projects[index] = action.payload;
+        }
+      })
+      .addCase(updateProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to update project';
+      })
+      .addCase(deleteProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteProject.fulfilled, (state, action: PayloadAction<void, string, { arg: string }>) => {
+        state.loading = false;
+        state.projects = state.projects.filter((p) => p._id !== action.meta.arg);
+      })
+      .addCase(deleteProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to delete project';
       });
   },
 });
