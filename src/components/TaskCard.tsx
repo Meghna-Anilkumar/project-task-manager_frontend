@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { Draggable } from '@hello-pangea/dnd';
 import { updateTaskStatus, deleteTask } from '../redux/actions/taskActions';
@@ -48,7 +48,8 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
   const [status, setStatus] = useState(task.status);
   const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
-  const activeInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setTitle(task.title);
@@ -58,77 +59,83 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
     setApiError(null);
   }, [task]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors: FormErrors = {};
     if (!title.trim()) newErrors.title = 'Title is required';
     if (!description.trim()) newErrors.description = 'Description is required';
     setErrors(newErrors);
     console.log('Validation result:', newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [title, description]);
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('handleUpdate called with:', { taskId: task._id, title, description, status, projectId: task.projectId });
-    if (!validateForm()) return;
+  const handleUpdate = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      console.log('handleUpdate called with:', { taskId: task._id, title, description, status, projectId: task.projectId });
+      if (!validateForm()) return;
 
-    try {
-      const result = await dispatch(
-        updateTaskStatus({
-          taskId: task._id,
-          status,
-          projectId: task.projectId,
-          title,
-          description,
-        })
-      ).unwrap();
-      console.log('Update task result:', result);
-      toast.success('Task updated successfully', { toastId: `update-${task._id}` });
-      setErrors({});
-      setApiError(null);
-      setIsEditModalOpen(false);
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      console.error('Update error:', error);
-      setApiError(error.message || 'Failed to update task');
-      toast.error(error.message || 'Failed to update task', { toastId: `update-error-${task._id}` });
-    }
-  };
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const result = await Swal.fire({
-      title: 'Delete Task?',
-      text: `Are you sure you want to delete "${task.title}"?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'Cancel',
-      customClass: {
-        popup: 'rounded-xl shadow-2xl',
-        confirmButton: 'px-4 py-2 rounded-lg',
-        cancelButton: 'px-4 py-2 rounded-lg',
-      },
-    });
-
-    if (result.isConfirmed) {
       try {
-        console.log('Deleting task:', task._id);
-        await dispatch(deleteTask(task._id)).unwrap();
-        console.log('Task deleted successfully:', task._id);
-        toast.success('Task deleted successfully', { toastId: `delete-${task._id}` });
+        const result = await dispatch(
+          updateTaskStatus({
+            taskId: task._id,
+            status,
+            projectId: task.projectId,
+            title,
+            description,
+          })
+        ).unwrap();
+        console.log('Update task result:', result);
+        toast.success('Task updated successfully', { toastId: `update-${task._id}` });
+        setErrors({});
+        setApiError(null);
+        setIsEditModalOpen(false);
       } catch (err: unknown) {
         const error = err as { message?: string };
-        console.error('Delete error:', error);
-        toast.error(error.message || 'Failed to delete task', { toastId: `delete-error-${task._id}` });
+        console.error('Update error:', error);
+        setApiError(error.message || 'Failed to update task');
+        toast.error(error.message || 'Failed to update task', { toastId: `update-error-${task._id}` });
       }
-    }
-  };
+    },
+    [dispatch, task._id, task.projectId, title, description, status, validateForm]
+  );
 
-  const handleEditClick = (e: React.MouseEvent) => {
+  const handleDelete = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const result = await Swal.fire({
+        title: 'Delete Task?',
+        text: `Are you sure you want to delete "${task.title}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        customClass: {
+          popup: 'rounded-xl shadow-2xl',
+          confirmButton: 'px-4 py-2 rounded-lg',
+          cancelButton: 'px-4 py-2 rounded-lg',
+        },
+      });
+
+      if (result.isConfirmed) {
+        try {
+          console.log('Deleting task:', task._id);
+          await dispatch(deleteTask(task._id)).unwrap();
+          console.log('Task deleted successfully:', task._id);
+          toast.success('Task deleted successfully', { toastId: `delete-${task._id}` });
+        } catch (err: unknown) {
+          const error = err as { message?: string };
+          console.error('Delete error:', error);
+          toast.error(error.message || 'Failed to delete task', { toastId: `delete-error-${task._id}` });
+        }
+      }
+    },
+    [dispatch, task._id, task.title]
+  );
+
+  const handleEditClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     console.log('Edit button clicked for task:', task._id);
@@ -138,16 +145,16 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
     setErrors({});
     setApiError(null);
     setIsEditModalOpen(true);
-  };
+  }, [task._id, task.title, task.description, task.status]);
 
-  const handleAiClick = (e: React.MouseEvent) => {
+  const handleAiClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     console.log('Ask AI button clicked for task:', task._id);
     setIsAiModalOpen(true);
-  };
+  }, [task._id]);
 
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
     console.log('Closing edit modal');
     setIsEditModalOpen(false);
     setTitle(task.title);
@@ -155,38 +162,31 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
     setStatus(task.status);
     setErrors({});
     setApiError(null);
-    activeInputRef.current = null;
-  };
+  }, [task.title, task.description, task.status]);
 
-  const handleAiModalClose = () => {
+  const handleAiModalClose = useCallback(() => {
     console.log('Closing AI modal');
     setIsAiModalOpen(false);
-  };
+  }, []);
 
-  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    activeInputRef.current = e.target;
-    console.log('Input focused:', e.target.id);
-  };
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('Title input changed:', e.target.value);
+    setTitle(e.target.value);
+  }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    setValue: React.Dispatch<React.SetStateAction<string>>,
-    field: 'title' | 'description'
-  ) => {
-    const { value } = e.target;
-    console.log(`${field} input changed:`, value);
-    setValue(value);
-    setErrors((prev) => ({
-      ...prev,
-      [field]: value.trim() ? undefined : `${field.charAt(0).toUpperCase() + field.slice(1)} is required`,
-    }));
-    setTimeout(() => {
-      if (activeInputRef.current) {
-        activeInputRef.current.focus();
-        console.log('Focus restored to:', activeInputRef.current.id);
-      }
-    }, 0);
-  };
+  const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log('Description input changed:', e.target.value);
+    setDescription(e.target.value);
+  }, []);
+
+  const handleStatusChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log('Status select changed:', e.target.value);
+    setStatus(e.target.value);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    validateForm();
+  }, [validateForm]);
 
   const isFormValid = title.trim() && description.trim();
 
@@ -229,7 +229,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
                     onClick={handleEditClick}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-3 py-1 rounded-lg text-xs sm:text-sm shadow-md hover:shadow-lg transition-shadow duration-200"
+                    className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-3 py-1 rounded-lg text-xs sm:text-sm shadow-md hover:shadow-lg transition-shadow duration-200 font-semibold"
                   >
                     Edit
                   </motion.button>
@@ -238,7 +238,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
                     onClick={handleDelete}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="bg-gradient-to-r from-red-400 to-red-500 text-white px-3 py-1 rounded-lg text-xs sm:text-sm shadow-md hover:shadow-lg transition-shadow duration-200"
+                    className="bg-gradient-to-r from-red-400 to-red-500 text-white px-3 py-1 rounded-lg text-xs sm:text-sm shadow-md hover:shadow-lg transition-shadow duration-200 font-semibold"
                   >
                     Delete
                   </motion.button>
@@ -247,7 +247,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
                     onClick={handleAiClick}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1 rounded-lg text-xs sm:text-sm shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center gap-1"
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-lg text-xs sm:text-sm shadow-md hover:shadow-lg transition-shadow duration-200 flex items-center gap-1 font-semibold"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -266,49 +266,50 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
         {apiError && <p className="text-red-500 mb-4 text-sm">{apiError}</p>}
         <form onSubmit={handleUpdate} className="flex flex-col gap-5">
           <div>
-            <label className="block text-gray-900 text-sm font-semibold mb-2" htmlFor="title">
+            <label className="block text-gray-900 text-sm font-semibold mb-2" htmlFor="edit-title">
               Title
             </label>
             <input
-              id="title"
+              ref={titleInputRef}
+              id="edit-title"
               type="text"
               value={title}
-              onChange={(e) => handleInputChange(e, setTitle, 'title')}
-              onFocus={handleInputFocus}
-              className={`border ${errors.title ? 'border-red-500' : 'border-gray-300'} p-2 rounded-lg w-full text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/80 backdrop-blur-sm transition-colors duration-200`}
+              onChange={handleTitleChange}
+              onBlur={handleBlur}
+              onFocus={() => console.log('Title input focused')}
+              className={`border ${errors.title ? 'border-red-500' : 'border-gray-300'} p-2 rounded-lg w-full text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white/80 backdrop-blur-sm transition-colors duration-200`}
               placeholder="Enter task title"
               autoFocus
             />
             {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
           </div>
           <div>
-            <label className="block text-gray-900 text-sm font-semibold mb-2" htmlFor="description">
+            <label className="block text-gray-900 text-sm font-semibold mb-2" htmlFor="edit-description">
               Description
             </label>
             <textarea
-              id="description"
+              ref={descriptionInputRef}
+              id="edit-description"
               value={description}
-              onChange={(e) => handleInputChange(e, setDescription, 'description')}
-              onFocus={handleInputFocus}
-              className={`border ${errors.description ? 'border-red-500' : 'border-gray-300'} p-2 rounded-lg w-full text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/80 backdrop-blur-sm transition-colors duration-200`}
+              onChange={handleDescriptionChange}
+              onBlur={handleBlur}
+              onFocus={() => console.log('Description input focused')}
+              className={`border ${errors.description ? 'border-red-500' : 'border-gray-300'} p-2 rounded-lg w-full text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white/80 backdrop-blur-sm transition-colors duration-200`}
               rows={4}
               placeholder="Enter task description"
             />
             {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
           </div>
           <div>
-            <label className="block text-gray-900 text-sm font-semibold mb-2" htmlFor="status">
+            <label className="block text-gray-900 text-sm font-semibold mb-2" htmlFor="edit-status">
               Status
             </label>
             <select
-              id="status"
+              id="edit-status"
               value={status}
-              onChange={(e) => {
-                console.log('Status select changed:', e.target.value);
-                setStatus(e.target.value);
-              }}
+              onChange={handleStatusChange}
               onFocus={() => console.log('Status select focused')}
-              className="border border-gray-300 p-2 rounded-lg w-full text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/80 backdrop-blur-sm transition-colors duration-200"
+              className="border border-gray-300 p-2 rounded-lg w-full text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white/80 backdrop-blur-sm transition-colors duration-200"
             >
               <option value="todo">To Do</option>
               <option value="in-progress">In Progress</option>
@@ -321,7 +322,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
               disabled={!isFormValid}
               whileHover={{ scale: isFormValid ? 1.05 : 1 }}
               whileTap={{ scale: isFormValid ? 0.95 : 1 }}
-              className={`bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-lg text-sm sm:text-base shadow-md transition-shadow duration-200 ${
+              className={`bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-2 rounded-lg text-sm sm:text-base shadow-md transition-shadow duration-200 font-semibold ${
                 !isFormValid ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
               }`}
             >
@@ -329,13 +330,10 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
             </motion.button>
             <motion.button
               type="button"
-              onClick={() => {
-                console.log('Cancel button clicked');
-                handleModalClose();
-              }}
+              onClick={handleModalClose}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg text-sm sm:text-base shadow-md hover:shadow-lg transition-shadow duration-200"
+              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg text-sm sm:text-base shadow-md hover:shadow-lg transition-shadow duration-200 font-semibold"
             >
               Cancel
             </motion.button>
@@ -345,7 +343,7 @@ const TaskCard = ({ task, index }: TaskCardProps) => {
 
       {/* AI Q&A Modal */}
       <CustomModal isOpen={isAiModalOpen} onClose={handleAiModalClose} title={`Ask AI About: ${task.title}`}>
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+        <div className="mb-4 p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg border border-purple-200">
           <p className="text-sm text-gray-600">{task.description}</p>
         </div>
         <AiQaForm taskId={task._id} />

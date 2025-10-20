@@ -42,3 +42,42 @@ export const createProject = createAsyncThunk<
     }
   }
 );
+
+export const updateProject = createAsyncThunk<
+  Project,
+  { id: string; name: string; description: string },
+  { rejectValue: CustomApiError }
+>(
+  'projects/updateProject',
+  async ({ id, name, description }, { rejectWithValue }) => {
+    try {
+      const response = await serverInstance.put(`/projects/${id}`, { name, description });
+      return response.data.data;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return rejectWithValue(new CustomApiError(error.message, 500));
+      } else {
+        return rejectWithValue(new CustomApiError('Unknown error', 500));
+      }
+    }
+  }
+);
+
+export const deleteProject = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: CustomApiError }
+>(
+  'projects/deleteProject',
+  async (id, { rejectWithValue }) => {
+    try {
+      await serverInstance.delete(`/projects/${id}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return rejectWithValue(new CustomApiError(error.message, 500));
+      } else {
+        return rejectWithValue(new CustomApiError('Unknown error', 500));
+      }
+    }
+  }
+);
