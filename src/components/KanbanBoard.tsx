@@ -51,7 +51,7 @@ const SortableColumn = ({ column, columnId, tasks }: SortableColumnProps) => {
         <div
           {...provided.droppableProps}
           ref={provided.innerRef}
-          className={`p-5 rounded-2xl w-full sm:w-1/3 min-w-[280px] flex-shrink-0 shadow-xl transition-all duration-300 border-2 ${
+          className={`p-5 rounded-2xl w-full min-w-[280px] flex-shrink-0 shadow-xl transition-all duration-300 border-2 ${
             snapshot.isDraggingOver
               ? `bg-gradient-to-b ${colors.hoverGradient} border-${colors.textColor.split('-')[1]}-300 scale-[1.02]`
               : `bg-gradient-to-b ${colors.gradient} border-transparent`
@@ -124,6 +124,9 @@ const KanbanBoard = () => {
   const tasks = useSelector((state: RootState) => state.tasks.tasks);
   const tasksLoading = useSelector((state: RootState) => state.tasks.loading);
   const tasksError = useSelector((state: RootState) => state.tasks.error);
+  const projects = useSelector((state: RootState) => state.projects.projects);
+  const projectsLoading = useSelector((state: RootState) => state.projects.loading);
+  const projectsError = useSelector((state: RootState) => state.projects.error);
   const project = useSelector((state: RootState) =>
     state.projects.projects.find((p: Project) => p._id === projectId)
   );
@@ -138,12 +141,22 @@ const KanbanBoard = () => {
   );
 
   useEffect(() => {
+    console.log('Fetching projects');
+    dispatch(fetchProjects());
+  }, [dispatch]);
+
+  useEffect(() => {
     if (projectId) {
       console.log('Fetching tasks for project:', projectId);
       dispatch(fetchTasks(projectId));
-      dispatch(fetchProjects());
     }
   }, [dispatch, projectId]);
+
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProjectId = e.target.value;
+    console.log('Switching to project:', newProjectId);
+    navigate(`/project/${newProjectId}`);
+  };
 
   const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result;
@@ -235,7 +248,36 @@ const KanbanBoard = () => {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Project Switcher */}
+            <div className="relative">
+              <select
+                value={projectId || ''}
+                onChange={handleProjectChange}
+                className="appearance-none bg-white/80 backdrop-blur-sm text-gray-700 px-4 py-2.5 pr-8 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-gray-200 hover:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                disabled={projectsLoading || projects.length === 0}
+              >
+                {projectsLoading && <option value="">Loading projects...</option>}
+                {!projectsLoading && projects.length === 0 && (
+                  <option value="">No projects available</option>
+                )}
+                {!projectsLoading &&
+                  projects.map((proj: Project) => (
+                    <option key={proj._id} value={proj._id}>
+                      {proj.name}
+                    </option>
+                  ))}
+              </select>
+              <svg
+                className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
             {projectId && <CreateTaskForm projectId={projectId} />}
             {projectId && (
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -247,6 +289,23 @@ const KanbanBoard = () => {
             )}
           </div>
         </div>
+
+        {/* Projects Error State */}
+        {projectsError && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-2xl mb-8 shadow-lg">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <p className="text-red-800 font-bold">{projectsError}</p>
+            </div>
+          </div>
+        )}
 
         {/* Loading State */}
         {tasksLoading && (
@@ -296,7 +355,7 @@ const KanbanBoard = () => {
 
         {/* Kanban Board */}
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex flex-col sm:flex-row gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-violet-300 scrollbar-track-transparent">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {columns.map(({ display, value }) => (
               <SortableColumn
                 key={display}
