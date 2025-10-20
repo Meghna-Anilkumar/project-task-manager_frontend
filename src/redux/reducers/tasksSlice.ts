@@ -25,7 +25,7 @@ const tasksSlice = createSlice({
   reducers: {
     resetQaResponse(state) {
       state.qaResponse = null;
-      state.error = null; // Optionally clear error as well
+      state.error = null; 
     },
   },
   extraReducers: (builder) => {
